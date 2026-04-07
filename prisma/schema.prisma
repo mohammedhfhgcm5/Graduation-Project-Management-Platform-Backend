@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  SUPERVISOR
+  HEAD
+}
+
+enum ProjectStatus {
+  PENDING_APPROVAL   // بانتظار موافقة رئيس القسم
+  APPROVED           // تمت الموافقة
+  IN_PROGRESS        // قيد التنفيذ
+  UNDER_REVIEW       // تحت المراجعة النهائية
+  COMPLETED          // منتهي
+  REJECTED           // مرفوض
+}
+
+enum FileType {
+  PROPOSAL           // ملف المقترح
+  PROGRESS_REPORT    // تقرير دوري
+  FINAL_REPORT       // التقرير النهائي
+  PRESENTATION       // ملف العرض
+  OTHER
+}
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  password    String
+  role        Role
+  department  String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  studentProjects    Project[]      @relation("StudentProjects")
+  supervisedProjects Project[]      @relation("SupervisedProjects")
+  comments           Comment[]
+  progressReports    ProgressReport[]
+  scheduledMeetings  Meeting[]      @relation("MeetingScheduler")
+  notifications      Notification[]
+
+  @@map("users")
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  title        String
+  description  String
+  status       ProjectStatus @default(PENDING_APPROVAL)
+  progress     Int           @default(0) // 0–100
+  techStack    String[]      // ["React", "NestJS", ...]
+
+  studentId    String
+  student      User          @relation("StudentProjects", fields: [studentId], references: [id])
+
+  supervisorId String?
+  supervisor   User?         @relation("SupervisedProjects", fields: [supervisorId], references: [id])
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  files           ProjectFile[]
+  progressReports ProgressReport[]
+  comments        Comment[]
+  meetings        Meeting[]
+
+  @@map("projects")
+}
+
+model ProjectFile {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        FileType
+  url         String
+  filename    String
+  size        Int?     // bytes
+  uploadedAt  DateTime @default(now())
+
+  @@map("project_files")
+}
+
+model ProgressReport {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  content     String
+  weekNumber  Int
+  createdAt   DateTime @default(now())
+
+  @@map("progress_reports")
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  content     String
+  createdAt   DateTime @default(now())
+
+  @@map("comments")
+}
+
+model Meeting {
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scheduledById String
+  scheduledBy  User     @relation("MeetingScheduler", fields: [scheduledById], references: [id])
+  scheduledAt  DateTime
+  location     String?  // "Room 204" or Google Meet link
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@map("meetings")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?  // e.g. "/projects/uuid"
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
