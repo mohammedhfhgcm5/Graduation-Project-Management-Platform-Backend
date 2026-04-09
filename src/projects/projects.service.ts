@@ -1,10 +1,11 @@
-import {
+﻿import {
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
-import { ProjectStatus, Role } from '../generated/prisma/enums';
+import { ProjectStatus as PrismaProjectStatus, Role } from '../generated/prisma/enums';
+import type { ProjectStatus as QueryProjectStatus } from './dto/projects-query.types';
 import type { AuthUser } from '../common/interfaces/auth-user.interface';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -40,8 +41,12 @@ export class ProjectsService {
     }
 
     if (query.status) {
-      where.status = query.status;
+      where.status = this.mapQueryStatusToDbStatus(query.status);
     }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
 
     if (query.search) {
       where.OR = [
@@ -73,6 +78,8 @@ export class ProjectsService {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: limit,
     });
   }
 
@@ -220,8 +227,8 @@ export class ProjectsService {
       data: {
         supervisorId: dto.supervisorId,
         status:
-          project.status === ProjectStatus.PENDING_APPROVAL
-            ? ProjectStatus.APPROVED
+          project.status === PrismaProjectStatus.PENDING_APPROVAL
+            ? PrismaProjectStatus.APPROVED
             : undefined,
       },
       include: {
@@ -250,6 +257,22 @@ export class ProjectsService {
     await this.prisma.project.delete({ where: { id: projectId } });
 
     return { message: 'Project deleted successfully.' };
+  }
+
+  private mapQueryStatusToDbStatus(status: QueryProjectStatus): PrismaProjectStatus {
+    switch (status) {
+      case 'DRAFT':
+      case 'SUBMITTED':
+        return PrismaProjectStatus.PENDING_APPROVAL;
+      case 'UNDER_REVIEW':
+        return PrismaProjectStatus.UNDER_REVIEW;
+      case 'APPROVED':
+        return PrismaProjectStatus.APPROVED;
+      case 'REJECTED':
+        return PrismaProjectStatus.REJECTED;
+      case 'ARCHIVED':
+        return PrismaProjectStatus.COMPLETED;
+    }
   }
 
   private assertProjectAccess(
@@ -307,3 +330,4 @@ export class ProjectsService {
     return project;
   }
 }
+
