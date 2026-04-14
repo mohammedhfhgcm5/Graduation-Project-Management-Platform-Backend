@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role, ProjectStatus, FileType } from '../src/generated/prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -12,15 +13,20 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });
 
+  const adminPassword = process.env.ADMIN_PASSWORD ?? 'user@123456';
+
+
+
+
 async function main() {
   console.log('🌱 Seeding database...');
-
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
   // ----- Create Users -----
   const head = await prisma.user.create({
     data: {
       name: 'Dr. Ahmed Mansour',
       email: 'head@example.com',
-      password: '$2a$10$hashedpassword123', // In real app, use bcrypt hash
+      password: hashedPassword, // In real app, use bcrypt hash
       role: Role.HEAD,
       department: 'Computer Science',
       avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
@@ -31,7 +37,7 @@ async function main() {
     data: {
       name: 'Dr. Sara Khalid',
       email: 'sara.khalid@example.com',
-      password: '$2a$10$hashedpassword123',
+      password: hashedPassword,
       role: Role.SUPERVISOR,
       department: 'Software Engineering',
       avatarUrl: 'https://randomuser.me/api/portraits/women/2.jpg',
@@ -42,7 +48,7 @@ async function main() {
     data: {
       name: 'Dr. Tariq Hassan',
       email: 'tariq.hassan@example.com',
-      password: '$2a$10$hashedpassword123',
+      password: hashedPassword,
       role: Role.SUPERVISOR,
       department: 'Data Science',
       avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg',
@@ -53,7 +59,7 @@ async function main() {
     data: {
       name: 'Lina Youssef',
       email: 'lina.youssef@example.com',
-      password: '$2a$10$hashedpassword123',
+      password: hashedPassword,
       role: Role.STUDENT,
       department: 'Computer Science',
       avatarUrl: 'https://randomuser.me/api/portraits/women/4.jpg',
@@ -64,7 +70,7 @@ async function main() {
     data: {
       name: 'Omar El-Sayed',
       email: 'omar.sayed@example.com',
-      password: '$2a$10$hashedpassword123',
+      password: hashedPassword,
       role: Role.STUDENT,
       department: 'Information Systems',
       avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg',
@@ -75,7 +81,7 @@ async function main() {
     data: {
       name: 'Nour Ali',
       email: 'nour.ali@example.com',
-      password: '$2a$10$hashedpassword123',
+      password: hashedPassword,
       role: Role.STUDENT,
       department: 'Computer Science',
       avatarUrl: 'https://randomuser.me/api/portraits/women/6.jpg',

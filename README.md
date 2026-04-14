@@ -260,6 +260,40 @@ PROPOSAL | PROGRESS_REPORT | FINAL_REPORT | PRESENTATION | OTHER
 | `PATCH` | `/projects/:id/supervisor` | Assign a supervisor | `HEAD` |
 | `DELETE` | `/projects/:id` | Delete a project | `HEAD` |
 
+**Controller Example (`GET /projects`):**
+
+```ts
+@Get()
+listProjects(@CurrentUser() user: AuthUser, @Query() query: ListProjectsDto) {
+  return this.projectsService.listProjects(user, query);
+}
+```
+
+**Projects Query Types:**
+
+```ts
+export interface ProjectsQuery {
+  page?: number;
+  limit?: number;
+  status?: ProjectStatus;
+  search?: string;
+}
+
+export type ProjectStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'ARCHIVED';
+```
+
+**Example Query:**
+
+```http
+GET /projects?page=1&limit=20&status=UNDER_REVIEW&search=ai
+```
+
 **Create Project:**
 
 ```json

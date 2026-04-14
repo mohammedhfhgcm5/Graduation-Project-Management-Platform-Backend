@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { AuthUser } from '../common/interfaces/auth-user.interface';
+import { Role } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -73,6 +74,15 @@ export class AuthService {
       ),
       user: this.toSafeUser(user),
     };
+  }
+
+  async listUsers(role?: Role): Promise<SafeUser[]> {
+    const users = await this.prisma.user.findMany({
+      where: role ? { role } : undefined,
+      orderBy: { name: 'asc' },
+    });
+
+    return users.map((user) => this.toSafeUser(user));
   }
 
   async validateUser(email: string, password: string) {
