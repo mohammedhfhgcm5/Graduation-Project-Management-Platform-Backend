@@ -7,17 +7,15 @@ import type { AuthUser } from '../common/interfaces/auth-user.interface';
 import { Role } from '../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  assertProjectAccess,
+  getProjectStudentIds,
+  hasProjectSupervisor,
+  projectMemberIdsSelect,
+  userSummarySelect,
+} from '../projects/project-members.util';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { UpdateMeetingDto } from './dto/update-meeting.dto';
-
-const userSummarySelect = {
-  id: true,
-  name: true,
-  email: true,
-  role: true,
-  department: true,
-  avatarUrl: true,
-} as const;
 
 @Injectable()
 export class MeetingsService {
@@ -33,9 +31,9 @@ export class MeetingsService {
   ) {
     const project = await this.ensureProjectExists(projectId);
 
-    if (user.role !== Role.SUPERVISOR || project.supervisorId !== user.sub) {
+    if (user.role !== Role.SUPERVISOR || !hasProjectSupervisor(project, user.sub)) {
       throw new ForbiddenException(
-        'Only the assigned supervisor can schedule meetings for this project.',
+        'Only assigned supervisors can schedule meetings for this project.',
       );
     }
 
@@ -52,10 +50,14 @@ export class MeetingsService {
       },
     });
 
-    await this.notificationsService.createForUser(
-      project.studentId,
-      `A new meeting was scheduled for your project "${project.title}".`,
-      `/projects/${project.id}`,
+    await Promise.all(
+      getProjectStudentIds(project).map((studentId) =>
+        this.notificationsService.createForUser(
+          studentId,
+          `A new meeting was scheduled for your project "${project.title}".`,
+          `/projects/${project.id}`,
+        ),
+      ),
     );
 
     return meeting;
@@ -63,7 +65,11 @@ export class MeetingsService {
 
   async listMeetings(projectId: string, user: AuthUser) {
     const project = await this.ensureProjectExists(projectId);
-    this.assertProjectAccess(project.studentId, project.supervisorId, user);
+    assertProjectAccess(
+      project,
+      user,
+      'You are not allowed to access meetings for this project.',
+    );
 
     return this.prisma.meeting.findMany({
       where: { projectId },
@@ -85,7 +91,7 @@ export class MeetingsService {
         project: {
           select: {
             id: true,
-            supervisorId: true,
+            ...projectMemberIdsSelect,
           },
         },
       },
@@ -97,10 +103,10 @@ export class MeetingsService {
 
     if (
       user.role !== Role.SUPERVISOR ||
-      meeting.project.supervisorId !== user.sub
+      !hasProjectSupervisor(meeting.project, user.sub)
     ) {
       throw new ForbiddenException(
-        'Only the assigned supervisor can update this meeting.',
+        'Only assigned supervisors can update this meeting.',
       );
     }
 
@@ -123,8 +129,7 @@ export class MeetingsService {
       select: {
         id: true,
         title: true,
-        studentId: true,
-        supervisorId: true,
+        ...projectMemberIdsSelect,
       },
     });
 
@@ -133,27 +138,5 @@ export class MeetingsService {
     }
 
     return project;
-  }
-
-  private assertProjectAccess(
-    studentId: string,
-    supervisorId: string | null,
-    user: AuthUser,
-  ) {
-    if (user.role === Role.HEAD) {
-      return;
-    }
-
-    if (user.role === Role.STUDENT && studentId === user.sub) {
-      return;
-    }
-
-    if (user.role === Role.SUPERVISOR && supervisorId === user.sub) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'You are not allowed to access meetings for this project.',
-    );
   }
 }

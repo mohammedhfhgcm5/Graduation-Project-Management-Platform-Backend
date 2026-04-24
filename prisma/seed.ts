@@ -96,8 +96,12 @@ async function main() {
       status: ProjectStatus.APPROVED,
       progress: 45,
       techStack: ['React', 'Python', 'Flask', 'Hugging Face'],
-      studentId: student1.id,
-      supervisorId: supervisor1.id,
+      students: {
+        connect: [{ id: student1.id }, { id: student2.id }],
+      },
+      supervisors: {
+        connect: [{ id: supervisor1.id }],
+      },
     },
   });
 
@@ -108,8 +112,12 @@ async function main() {
       status: ProjectStatus.IN_PROGRESS,
       progress: 70,
       techStack: ['Flutter', 'Firebase', 'TensorFlow Lite'],
-      studentId: student2.id,
-      supervisorId: supervisor2.id,
+      students: {
+        connect: [{ id: student3.id }],
+      },
+      supervisors: {
+        connect: [{ id: supervisor1.id }, { id: supervisor2.id }],
+      },
     },
   });
 
@@ -117,11 +125,19 @@ async function main() {
     data: {
       title: 'Blockchain for Diploma Verification',
       description: 'Decentralised system to issue and verify academic certificates using Ethereum.',
-      status: ProjectStatus.PENDING_APPROVAL,
+      status: ProjectStatus.APPROVED,
       progress: 10,
       techStack: ['Solidity', 'Node.js', 'React', 'Web3.js'],
-      studentId: student3.id,
-      supervisorId: supervisor1.id,
+      students: {
+        connect: [
+          { id: student1.id },
+          { id: student2.id },
+          { id: student3.id },
+        ],
+      },
+      supervisors: {
+        connect: [{ id: supervisor1.id }, { id: supervisor2.id }],
+      },
     },
   });
 

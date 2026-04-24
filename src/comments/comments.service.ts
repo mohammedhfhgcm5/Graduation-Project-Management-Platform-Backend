@@ -8,15 +8,13 @@ import { Role } from '../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-
-const userSummarySelect = {
-  id: true,
-  name: true,
-  email: true,
-  role: true,
-  department: true,
-  avatarUrl: true,
-} as const;
+import {
+  assertProjectAccess,
+  getProjectStudentIds,
+  hasProjectSupervisor,
+  projectMemberIdsSelect,
+  userSummarySelect,
+} from '../projects/project-members.util';
 
 @Injectable()
 export class CommentsService {
@@ -32,7 +30,10 @@ export class CommentsService {
   ) {
     const project = await this.ensureProjectExists(projectId);
 
-    if (user.role === Role.SUPERVISOR && project.supervisorId !== user.sub) {
+    if (
+      user.role === Role.SUPERVISOR &&
+      !hasProjectSupervisor(project, user.sub)
+    ) {
       throw new ForbiddenException(
         'You can add comments only to projects assigned to you.',
       );
@@ -55,10 +56,14 @@ export class CommentsService {
       },
     });
 
-    await this.notificationsService.createForUser(
-      project.studentId,
-      `A new comment was added to your project "${project.title}".`,
-      `/projects/${project.id}`,
+    await Promise.all(
+      getProjectStudentIds(project).map((studentId) =>
+        this.notificationsService.createForUser(
+          studentId,
+          `A new comment was added to your project "${project.title}".`,
+          `/projects/${project.id}`,
+        ),
+      ),
     );
 
     return comment;
@@ -66,7 +71,11 @@ export class CommentsService {
 
   async listComments(projectId: string, user: AuthUser) {
     const project = await this.ensureProjectExists(projectId);
-    this.assertProjectAccess(project.studentId, project.supervisorId, user);
+    assertProjectAccess(
+      project,
+      user,
+      'You are not allowed to access comments for this project.',
+    );
 
     return this.prisma.comment.findMany({
       where: { projectId },
@@ -83,8 +92,7 @@ export class CommentsService {
       select: {
         id: true,
         title: true,
-        studentId: true,
-        supervisorId: true,
+        ...projectMemberIdsSelect,
       },
     });
 
@@ -93,27 +101,5 @@ export class CommentsService {
     }
 
     return project;
-  }
-
-  private assertProjectAccess(
-    studentId: string,
-    supervisorId: string | null,
-    user: AuthUser,
-  ) {
-    if (user.role === Role.HEAD) {
-      return;
-    }
-
-    if (user.role === Role.STUDENT && studentId === user.sub) {
-      return;
-    }
-
-    if (user.role === Role.SUPERVISOR && supervisorId === user.sub) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'You are not allowed to access comments for this project.',
-    );
   }
 }

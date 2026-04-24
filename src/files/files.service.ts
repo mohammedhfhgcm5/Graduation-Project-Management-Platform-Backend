@@ -1,12 +1,15 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { unlink } from 'node:fs/promises';
 import type { AuthUser } from '../common/interfaces/auth-user.interface';
-import { FileType, Role } from '../generated/prisma/enums';
+import { FileType } from '../generated/prisma/enums';
+import {
+  assertProjectAccess,
+  projectMemberIdsSelect,
+} from '../projects/project-members.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadFileDto } from './dto/upload-file.dto';
 
@@ -61,8 +64,7 @@ export class FilesService {
         project: {
           select: {
             id: true,
-            studentId: true,
-            supervisorId: true,
+            ...projectMemberIdsSelect,
           },
         },
       },
@@ -72,7 +74,11 @@ export class FilesService {
       throw new NotFoundException('File not found.');
     }
 
-    this.assertAccess(file.project.studentId, file.project.supervisorId, user);
+    assertProjectAccess(
+      file.project,
+      user,
+      'You are not allowed to access this project files.',
+    );
 
     await this.prisma.projectFile.delete({
       where: { id: fileId },
@@ -95,8 +101,7 @@ export class FilesService {
       where: { id: projectId },
       select: {
         id: true,
-        studentId: true,
-        supervisorId: true,
+        ...projectMemberIdsSelect,
       },
     });
 
@@ -104,29 +109,7 @@ export class FilesService {
       throw new NotFoundException('Project not found.');
     }
 
-    this.assertAccess(project.studentId, project.supervisorId, user);
+    assertProjectAccess(project, user);
     return project;
-  }
-
-  private assertAccess(
-    studentId: string,
-    supervisorId: string | null,
-    user: AuthUser,
-  ) {
-    if (user.role === Role.HEAD) {
-      return;
-    }
-
-    if (user.role === Role.STUDENT && studentId === user.sub) {
-      return;
-    }
-
-    if (user.role === Role.SUPERVISOR && supervisorId === user.sub) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'You are not allowed to access this project files.',
-    );
   }
 }

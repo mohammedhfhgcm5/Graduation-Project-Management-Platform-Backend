@@ -52,8 +52,8 @@ model User {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  studentProjects    Project[]      @relation("StudentProjects")
-  supervisedProjects Project[]      @relation("SupervisedProjects")
+  studentProjects    Project[]      @relation("ProjectStudents")
+  supervisedProjects Project[]      @relation("ProjectSupervisors")
   comments           Comment[]
   progressReports    ProgressReport[]
   scheduledMeetings  Meeting[]      @relation("MeetingScheduler")
@@ -70,11 +70,8 @@ model Project {
   progress     Int           @default(0) // 0–100
   techStack    String[]      // ["React", "NestJS", ...]
 
-  studentId    String
-  student      User          @relation("StudentProjects", fields: [studentId], references: [id])
-
-  supervisorId String?
-  supervisor   User?         @relation("SupervisedProjects", fields: [supervisorId], references: [id])
+  students     User[]        @relation("ProjectStudents")
+  supervisors  User[]        @relation("ProjectSupervisors")
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

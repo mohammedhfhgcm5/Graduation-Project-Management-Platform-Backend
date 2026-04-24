@@ -8,15 +8,13 @@ import { Role } from '../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
-
-const userSummarySelect = {
-  id: true,
-  name: true,
-  email: true,
-  role: true,
-  department: true,
-  avatarUrl: true,
-} as const;
+import {
+  assertProjectAccess,
+  getProjectSupervisorIds,
+  hasProjectStudent,
+  projectMemberIdsSelect,
+  userSummarySelect,
+} from '../projects/project-members.util';
 
 @Injectable()
 export class ReportsService {
@@ -28,9 +26,9 @@ export class ReportsService {
   async createReport(projectId: string, dto: CreateReportDto, user: AuthUser) {
     const project = await this.ensureProjectExists(projectId);
 
-    if (user.role !== Role.STUDENT || project.studentId !== user.sub) {
+    if (user.role !== Role.STUDENT || !hasProjectStudent(project, user.sub)) {
       throw new ForbiddenException(
-        'Only the project owner can add progress reports.',
+        'Only students assigned to this project can add progress reports.',
       );
     }
 
@@ -46,20 +44,26 @@ export class ReportsService {
       },
     });
 
-    if (project.supervisorId) {
-      await this.notificationsService.createForUser(
-        project.supervisorId,
-        `A new progress report was uploaded for project "${project.title}".`,
-        `/projects/${project.id}`,
-      );
-    }
+    await Promise.all(
+      getProjectSupervisorIds(project).map((supervisorId) =>
+        this.notificationsService.createForUser(
+          supervisorId,
+          `A new progress report was uploaded for project "${project.title}".`,
+          `/projects/${project.id}`,
+        ),
+      ),
+    );
 
     return report;
   }
 
   async listReports(projectId: string, user: AuthUser) {
     const project = await this.ensureProjectExists(projectId);
-    this.assertProjectAccess(project.studentId, project.supervisorId, user);
+    assertProjectAccess(
+      project,
+      user,
+      'You are not allowed to access reports for this project.',
+    );
 
     return this.prisma.progressReport.findMany({
       where: { projectId },
@@ -76,8 +80,7 @@ export class ReportsService {
       select: {
         id: true,
         title: true,
-        studentId: true,
-        supervisorId: true,
+        ...projectMemberIdsSelect,
       },
     });
 
@@ -86,27 +89,5 @@ export class ReportsService {
     }
 
     return project;
-  }
-
-  private assertProjectAccess(
-    studentId: string,
-    supervisorId: string | null,
-    user: AuthUser,
-  ) {
-    if (user.role === Role.HEAD) {
-      return;
-    }
-
-    if (user.role === Role.STUDENT && studentId === user.sub) {
-      return;
-    }
-
-    if (user.role === Role.SUPERVISOR && supervisorId === user.sub) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'You are not allowed to access reports for this project.',
-    );
   }
 }

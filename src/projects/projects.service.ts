@@ -1,28 +1,33 @@
-﻿import {
+import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
-import { ProjectStatus as PrismaProjectStatus, Role } from '../generated/prisma/enums';
-import type { ProjectStatus as QueryProjectStatus } from './dto/projects-query.types';
+import {
+  ProjectStatus as PrismaProjectStatus,
+  Role,
+} from '../generated/prisma/enums';
 import type { AuthUser } from '../common/interfaces/auth-user.interface';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssignSupervisorDto } from './dto/assign-supervisor.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ListProjectsDto } from './dto/list-projects.dto';
+import type { ProjectStatus as QueryProjectStatus } from './dto/projects-query.types';
 import { UpdateProjectStatusDto } from './dto/update-project-status.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-
-const userSummarySelect = {
-  id: true,
-  name: true,
-  email: true,
-  role: true,
-  department: true,
-  avatarUrl: true,
-} as const;
+import {
+  assertProjectAccess,
+  assertProjectEditor,
+  formatProjectResponse,
+  formatProjectsResponse,
+  getProjectStudentIds,
+  hasProjectSupervisor,
+  projectMemberIdsSelect,
+  projectMembersInclude,
+} from './project-members.util';
 
 @Injectable()
 export class ProjectsService {
@@ -35,9 +40,17 @@ export class ProjectsService {
     const where: Prisma.ProjectWhereInput = {};
 
     if (user.role === Role.STUDENT) {
-      where.studentId = user.sub;
+      where.students = {
+        some: {
+          id: user.sub,
+        },
+      };
     } else if (user.role === Role.SUPERVISOR) {
-      where.supervisorId = user.sub;
+      where.supervisors = {
+        some: {
+          id: user.sub,
+        },
+      };
     }
 
     if (query.status) {
@@ -65,22 +78,17 @@ export class ProjectsService {
       ];
     }
 
-    return this.prisma.project.findMany({
+    const projects = await this.prisma.project.findMany({
       where,
-      include: {
-        student: {
-          select: userSummarySelect,
-        },
-        supervisor: {
-          select: userSummarySelect,
-        },
-      },
+      include: projectMembersInclude,
       orderBy: {
         createdAt: 'desc',
       },
       skip,
       take: limit,
     });
+
+    return formatProjectsResponse(projects);
   }
 
   async createProject(dto: CreateProjectDto, user: AuthUser) {
@@ -88,45 +96,75 @@ export class ProjectsService {
       throw new ForbiddenException('Only students can create projects.');
     }
 
-    return this.prisma.project.create({
+    const studentIds = this.normalizeStudentIds(dto, user);
+    await this.ensureUsersHaveRole(studentIds, Role.STUDENT, 'students');
+
+    const project = await this.prisma.project.create({
       data: {
         title: dto.title,
         description: dto.description,
         progress: dto.progress ?? 0,
         techStack: dto.techStack,
-        studentId: user.sub,
+        students: {
+          connect: studentIds.map((id) => ({ id })),
+        },
       },
-      include: {
-        student: { select: userSummarySelect },
-        supervisor: { select: userSummarySelect },
-      },
+      include: projectMembersInclude,
     });
+
+    return formatProjectResponse(project);
   }
 
   async getProjectById(projectId: string, user: AuthUser) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
-        student: { select: userSummarySelect },
-        supervisor: { select: userSummarySelect },
+        ...projectMembersInclude,
         files: {
           orderBy: { uploadedAt: 'desc' },
         },
         progressReports: {
           include: {
-            author: { select: userSummarySelect },
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                department: true,
+                avatarUrl: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
         },
         comments: {
           include: {
-            author: { select: userSummarySelect },
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                department: true,
+                avatarUrl: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
         },
         meetings: {
           include: {
-            scheduledBy: { select: userSummarySelect },
+            scheduledBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                department: true,
+                avatarUrl: true,
+              },
+            },
           },
           orderBy: { scheduledAt: 'desc' },
         },
@@ -137,8 +175,8 @@ export class ProjectsService {
       throw new NotFoundException('Project not found.');
     }
 
-    this.assertProjectAccess(project.studentId, project.supervisorId, user);
-    return project;
+    assertProjectAccess(project, user);
+    return formatProjectResponse(project);
   }
 
   async updateProject(
@@ -147,20 +185,19 @@ export class ProjectsService {
     user: AuthUser,
   ) {
     const project = await this.ensureProjectExists(projectId);
-    this.assertCanEditProject(project.studentId, project.supervisorId, user);
+    assertProjectEditor(project, user);
 
-    return this.prisma.project.update({
+    const updatedProject = await this.prisma.project.update({
       where: { id: projectId },
       data: {
         title: dto.title,
         description: dto.description,
         progress: dto.progress,
       },
-      include: {
-        student: { select: userSummarySelect },
-        supervisor: { select: userSummarySelect },
-      },
+      include: projectMembersInclude,
     });
+
+    return formatProjectResponse(updatedProject);
   }
 
   async changeProjectStatus(
@@ -170,7 +207,7 @@ export class ProjectsService {
   ) {
     const project = await this.ensureProjectExists(projectId);
 
-    if (user.role === Role.SUPERVISOR && project.supervisorId !== user.sub) {
+    if (user.role === Role.SUPERVISOR && !hasProjectSupervisor(project, user.sub)) {
       throw new ForbiddenException(
         'You can update status only for your projects.',
       );
@@ -179,21 +216,22 @@ export class ProjectsService {
     const updatedProject = await this.prisma.project.update({
       where: { id: projectId },
       data: { status: dto.status },
-      include: {
-        student: { select: userSummarySelect },
-        supervisor: { select: userSummarySelect },
-      },
+      include: projectMembersInclude,
     });
 
     if (project.status !== dto.status) {
-      await this.notificationsService.createForUser(
-        project.studentId,
-        `Project "${project.title}" status changed to ${dto.status}.`,
-        `/projects/${project.id}`,
+      await Promise.all(
+        getProjectStudentIds(project).map((studentId) =>
+          this.notificationsService.createForUser(
+            studentId,
+            `Project "${project.title}" status changed to ${dto.status}.`,
+            `/projects/${project.id}`,
+          ),
+        ),
       );
     }
 
-    return updatedProject;
+    return formatProjectResponse(updatedProject);
   }
 
   async assignSupervisor(
@@ -208,42 +246,43 @@ export class ProjectsService {
     }
 
     const project = await this.ensureProjectExists(projectId);
-
-    const supervisor = await this.prisma.user.findUnique({
-      where: { id: dto.supervisorId },
-      select: {
-        id: true,
-        role: true,
-        name: true,
-      },
-    });
-
-    if (!supervisor || supervisor.role !== Role.SUPERVISOR) {
-      throw new NotFoundException('Supervisor not found.');
-    }
+    const supervisorIds = this.normalizeSupervisorIds(dto.supervisorIds);
+    const supervisors = await this.ensureUsersHaveRole(
+      supervisorIds,
+      Role.SUPERVISOR,
+      'supervisors',
+    );
 
     const updatedProject = await this.prisma.project.update({
       where: { id: projectId },
       data: {
-        supervisorId: dto.supervisorId,
+        supervisors: {
+          set: supervisorIds.map((id) => ({ id })),
+        },
         status:
           project.status === PrismaProjectStatus.PENDING_APPROVAL
             ? PrismaProjectStatus.APPROVED
             : undefined,
       },
-      include: {
-        student: { select: userSummarySelect },
-        supervisor: { select: userSummarySelect },
-      },
+      include: projectMembersInclude,
     });
 
-    await this.notificationsService.createForUser(
-      project.studentId,
-      `Supervisor "${supervisor.name}" was assigned to your project "${project.title}".`,
-      `/projects/${project.id}`,
+    const supervisorNames = supervisors.map((supervisor) => supervisor.name);
+    const assignedLabel =
+      supervisorNames.length === 1 ? 'Supervisor' : 'Supervisors';
+    const assignedVerb = supervisorNames.length === 1 ? 'was' : 'were';
+
+    await Promise.all(
+      getProjectStudentIds(project).map((studentId) =>
+        this.notificationsService.createForUser(
+          studentId,
+          `${assignedLabel} ${supervisorNames.join(', ')} ${assignedVerb} assigned to your project "${project.title}".`,
+          `/projects/${project.id}`,
+        ),
+      ),
     );
 
-    return updatedProject;
+    return formatProjectResponse(updatedProject);
   }
 
   async deleteProject(projectId: string, user: AuthUser) {
@@ -259,7 +298,9 @@ export class ProjectsService {
     return { message: 'Project deleted successfully.' };
   }
 
-  private mapQueryStatusToDbStatus(status: QueryProjectStatus): PrismaProjectStatus {
+  private mapQueryStatusToDbStatus(
+    status: QueryProjectStatus,
+  ): PrismaProjectStatus {
     switch (status) {
       case 'DRAFT':
       case 'SUBMITTED':
@@ -275,40 +316,57 @@ export class ProjectsService {
     }
   }
 
-  private assertProjectAccess(
-    studentId: string,
-    supervisorId: string | null,
-    user: AuthUser,
-  ) {
-    if (user.role === Role.HEAD) {
-      return;
+  private normalizeStudentIds(dto: CreateProjectDto, user: AuthUser) {
+    const studentIds = [...new Set([user.sub, ...(dto.studentIds ?? [])])];
+
+    if (studentIds.length < 1 || studentIds.length > 3) {
+      throw new BadRequestException(
+        'A project must have between 1 and 3 students.',
+      );
     }
 
-    if (user.role === Role.STUDENT && studentId === user.sub) {
-      return;
-    }
-
-    if (user.role === Role.SUPERVISOR && supervisorId === user.sub) {
-      return;
-    }
-
-    throw new ForbiddenException('You are not allowed to access this project.');
+    return studentIds;
   }
 
-  private assertCanEditProject(
-    studentId: string,
-    supervisorId: string | null,
-    user: AuthUser,
+  private normalizeSupervisorIds(supervisorIds: string[]) {
+    const uniqueSupervisorIds = [...new Set(supervisorIds)];
+
+    if (
+      uniqueSupervisorIds.length < 1 ||
+      uniqueSupervisorIds.length > 3
+    ) {
+      throw new BadRequestException(
+        'A project must have between 1 and 3 supervisors.',
+      );
+    }
+
+    return uniqueSupervisorIds;
+  }
+
+  private async ensureUsersHaveRole(
+    userIds: string[],
+    role: Role,
+    label: string,
   ) {
-    if (user.role === Role.STUDENT && studentId === user.sub) {
-      return;
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: {
+          in: userIds,
+        },
+        role,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (users.length !== userIds.length) {
+      throw new NotFoundException(`One or more ${label} were not found.`);
     }
 
-    if (user.role === Role.SUPERVISOR && supervisorId === user.sub) {
-      return;
-    }
-
-    throw new ForbiddenException('You are not allowed to update this project.');
+    const usersById = new Map(users.map((user) => [user.id, user]));
+    return userIds.map((userId) => usersById.get(userId)!);
   }
 
   private async ensureProjectExists(projectId: string) {
@@ -318,8 +376,7 @@ export class ProjectsService {
         id: true,
         title: true,
         status: true,
-        studentId: true,
-        supervisorId: true,
+        ...projectMemberIdsSelect,
       },
     });
 
@@ -330,4 +387,3 @@ export class ProjectsService {
     return project;
   }
 }
-
