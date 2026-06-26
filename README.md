@@ -37,7 +37,7 @@
 | Database | PostgreSQL |
 | Auth | JWT (`@nestjs/jwt`, `passport-jwt`) |
 | Validation | `class-validator` + `class-transformer` |
-| File Upload | Multer |
+| File Storage | Cloudinary metadata records |
 
 ---
 
@@ -333,18 +333,37 @@ GET /projects?page=1&limit=20&status=UNDER_REVIEW&search=ai
 
 | Method | Endpoint | Description | Auth |
 |---|---|---|---|
-| `POST` | `/files/upload/:projectId` | Upload a file | Any |
+| `POST` | `/files/upload/:projectId` | Save uploaded file metadata | Any |
 | `GET` | `/files/:projectId` | List files for a project | Any |
 | `DELETE` | `/files/:fileId` | Delete a file | Any |
 
-**Upload:** `multipart/form-data`
+**Upload:** `application/json`
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `file` | File | ✅ | The file to upload |
-| `type` | String | ❌ | One of `FileType` enum values |
+| `type` | String | Required | One of `FileType` enum values |
+| `url` | String | Required | Cloudinary file URL |
+| `filename` | String | Required | Original/display filename |
+| `size` | Number | Optional | File size in bytes |
+| `provider` | String | Optional | Defaults to `cloudinary` |
+| `cloudinaryPublicId` | String | Optional | Used by backend delete cleanup |
+| `cloudinaryResourceType` | String | Optional | Example: `raw` |
+| `cloudinaryFormat` | String | Optional | Example: `pdf` |
 
-> **Size limit:** `MAX_FILE_SIZE` (default: 50 MB)
+```json
+{
+  "type": "PROPOSAL",
+  "url": "https://res.cloudinary.com/example/raw/upload/v1/proposal.pdf",
+  "filename": "proposal.pdf",
+  "size": 123456,
+  "provider": "cloudinary",
+  "cloudinaryPublicId": "graduation-projects/projects/projectId/file",
+  "cloudinaryResourceType": "raw",
+  "cloudinaryFormat": "pdf"
+}
+```
+
+> Files are uploaded directly by the frontend to Cloudinary. The backend stores metadata only, and `DELETE /files/:fileId` deletes the database record plus attempts Cloudinary cleanup when backend Cloudinary env vars are configured.
 
 ---
 
@@ -480,7 +499,8 @@ GraduationProjectManagementPlatform.postman_collection.json
 
 | Status | Meaning |
 |---|---|
-| `400 Bad Request` | Validation error, duplicate email, or missing file |
+| `400 Bad Request` | Validation error or duplicate email |
 | `401 Unauthorized` | Missing or invalid JWT token |
 | `403 Forbidden` | Role or ownership violation |
 | `404 Not Found` | Project, file, meeting, or notification not found |
+

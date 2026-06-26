@@ -1,11 +1,10 @@
 import {
-  BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { unlink } from 'node:fs/promises';
+import { ConfigService } from '@nestjs/config';
 import type { AuthUser } from '../common/interfaces/auth-user.interface';
-import { FileType } from '../generated/prisma/enums';
 import {
   assertProjectAccess,
   projectMemberIdsSelect,
@@ -13,48 +12,63 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadFileDto } from './dto/upload-file.dto';
 
+type FileResponse = {
+  id: string;
+  projectId: string;
+  type: UploadFileDto['type'];
+  url: string;
+  filename: string;
+  size: number | null;
+  uploadedAt: Date;
+};
+
+type CloudinaryDeleteMetadata = {
+  cloudinaryPublicId: string | null;
+  cloudinaryResourceType: string | null;
+};
+
 @Injectable()
 export class FilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(FilesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async uploadFile(
     projectId: string,
-    file: Express.Multer.File | undefined,
     dto: UploadFileDto,
     user: AuthUser,
   ) {
-    if (!file) {
-      throw new BadRequestException('File is required.');
-    }
-
     await this.ensureProjectAccess(projectId, user);
 
-    return this.prisma.projectFile.create({
+    const file = await this.prisma.projectFile.create({
       data: {
         projectId,
-        type: dto.type ?? FileType.OTHER,
-        filename: file.originalname,
-        size: file.size,
-        url: file.path.replaceAll('\\', '/'),
-      },
-      include: {
-        project: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
+        type: dto.type,
+        url: dto.url,
+        filename: dto.filename,
+        size: dto.size,
+        provider: dto.provider ?? 'cloudinary',
+        cloudinaryPublicId: dto.cloudinaryPublicId,
+        cloudinaryResourceType: dto.cloudinaryResourceType,
+        cloudinaryFormat: dto.cloudinaryFormat,
       },
     });
+
+    return this.toFileResponse(file);
   }
 
   async listFiles(projectId: string, user: AuthUser) {
     await this.ensureProjectAccess(projectId, user);
 
-    return this.prisma.projectFile.findMany({
+    const files = await this.prisma.projectFile.findMany({
       where: { projectId },
       orderBy: { uploadedAt: 'desc' },
     });
+
+    return files.map((file) => this.toFileResponse(file));
   }
 
   async deleteFile(fileId: string, user: AuthUser) {
@@ -84,14 +98,7 @@ export class FilesService {
       where: { id: fileId },
     });
 
-    try {
-      await unlink(file.url);
-    } catch (error: unknown) {
-      const isMissing = (error as { code?: string }).code === 'ENOENT';
-      if (!isMissing) {
-        throw error;
-      }
-    }
+    await this.deleteCloudinaryFileIfConfigured(file);
 
     return { message: 'File deleted successfully.' };
   }
@@ -111,5 +118,64 @@ export class FilesService {
 
     assertProjectAccess(project, user);
     return project;
+  }
+
+  private toFileResponse(file: FileResponse) {
+    return {
+      id: file.id,
+      projectId: file.projectId,
+      type: file.type,
+      url: file.url,
+      filename: file.filename,
+      size: file.size,
+      uploadedAt: file.uploadedAt,
+    };
+  }
+
+  private async deleteCloudinaryFileIfConfigured(
+    file: CloudinaryDeleteMetadata,
+  ) {
+    const publicId = file.cloudinaryPublicId;
+    if (!publicId) {
+      return;
+    }
+
+    const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return;
+    }
+
+    try {
+      const resourceType = file.cloudinaryResourceType || 'raw';
+      const url = new URL(
+        `https://api.cloudinary.com/v1_1/${encodeURIComponent(
+          cloudName,
+        )}/resources/${encodeURIComponent(resourceType)}/upload`,
+      );
+      url.searchParams.append('public_ids[]', publicId);
+
+      const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString(
+        'base64',
+      );
+      const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        throw new Error(
+          `Cloudinary delete failed with status ${response.status}: ${responseText}`,
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Failed to delete Cloudinary file ${publicId}: ${message}`);
+    }
   }
 }
