@@ -22,7 +22,7 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  @Roles(Role.HEAD)
+  @Public()
   @Get('users')
   listUsers(@Query('role') role?: Role) {
     return this.authService.listUsers(role);
