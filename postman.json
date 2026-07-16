@@ -1,0 +1,1146 @@
+{
+  "info": {
+    "_postman_id": "5d3b4a40-596c-4c0f-8b36-4f8f8d8dbf3a",
+    "name": "Graduation Project Management Platform API",
+    "description": "Postman collection for all NestJS API endpoints. Set base_url to your API server, then use the login requests to populate token variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Student User\",\n  \"email\": \"{{new_student_email}}\",\n  \"password\": \"{{new_student_password}}\",\n  \"role\": \"STUDENT\",\n  \"department\": \"Computer Science\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "  pm.collectionVariables.set('token', res.accessToken);",
+                  "  pm.collectionVariables.set('student_token', res.accessToken);",
+                  "}",
+                  "if (res.user && res.user.id) {",
+                  "  pm.collectionVariables.set('student_id', res.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student_email}}\",\n  \"password\": \"{{seed_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "  pm.collectionVariables.set('token', res.accessToken);",
+                  "  pm.collectionVariables.set('student_token', res.accessToken);",
+                  "}",
+                  "if (res.user && res.user.id) {",
+                  "  pm.collectionVariables.set('student_id', res.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login as Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{supervisor_email}}\",\n  \"password\": \"{{seed_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "  pm.collectionVariables.set('token', res.accessToken);",
+                  "  pm.collectionVariables.set('supervisor_token', res.accessToken);",
+                  "}",
+                  "if (res.user && res.user.id) {",
+                  "  pm.collectionVariables.set('supervisor_id', res.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login as Head",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{head_email}}\",\n  \"password\": \"{{head_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "  pm.collectionVariables.set('token', res.accessToken);",
+                  "  pm.collectionVariables.set('head_token', res.accessToken);",
+                  "}",
+                  "if (res.user && res.user.id) {",
+                  "  pm.collectionVariables.set('head_id', res.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/users",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "{{user_role}}",
+                  "description": "Optional: STUDENT, SUPERVISOR, or HEAD",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": ["{{base_url}}"],
+              "path": ["projects"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "{{list_project_status}}",
+                  "description": "Optional query status: DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, or ARCHIVED",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "{{search}}",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"AI Graduation Assistant\",\n  \"description\": \"Management platform for graduation projects\",\n  \"techStack\": [\n    \"NestJS\",\n    \"PostgreSQL\",\n    \"Prisma\"\n  ],\n  \"progress\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": ["{{base_url}}"],
+              "path": ["projects"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('project_id', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Project Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"AI Graduation Assistant v2\",\n  \"description\": \"Updated description for milestone 1\",\n  \"progress\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Project Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{head_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"{{project_status}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Supervisor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{head_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supervisorIds\": [\n    \"{{supervisor_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/supervisor",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "supervisor"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{head_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload File Metadata",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"PROPOSAL\",\n  \"url\": \"https://example.com/files/project-proposal.pdf\",\n  \"filename\": \"project-proposal.pdf\",\n  \"size\": 245000,\n  \"provider\": \"cloudinary\",\n  \"cloudinaryPublicId\": \"graduation/project-proposal\",\n  \"cloudinaryResourceType\": \"raw\",\n  \"cloudinaryFormat\": \"pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/files/upload/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["files", "upload", "{{project_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('file_id', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Files By Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/files/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["files", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/files/{{file_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["files", "{{file_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Add Progress Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Completed API authentication and role guards.\",\n  \"weekNumber\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/reports/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Reports By Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "{{project_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisor_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Good progress. Please prepare the architecture diagram.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/comments/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["comments", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Comments By Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/comments/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["comments", "{{project_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Meetings",
+      "item": [
+        {
+          "name": "Schedule Meeting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisor_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledAt\": \"2026-07-20T10:00:00.000Z\",\n  \"location\": \"Room 204\",\n  \"notes\": \"Discuss progress and blockers\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/meetings/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["meetings", "{{project_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('meeting_id', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Meetings By Project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/meetings/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["meetings", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Meeting",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisor_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledAt\": \"2026-07-20T11:00:00.000Z\",\n  \"location\": \"Google Meet\",\n  \"notes\": \"Updated to online meeting\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/meetings/{{meeting_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["meetings", "{{meeting_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Discussion Schedules",
+      "item": [
+        {
+          "name": "List Discussion Schedules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/discussion-schedules",
+              "host": ["{{base_url}}"],
+              "path": ["discussion-schedules"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}",
+                  "disabled": true
+                },
+                {
+                  "key": "academicYear",
+                  "value": "{{academic_year}}",
+                  "disabled": true
+                },
+                {
+                  "key": "semester",
+                  "value": "{{semester}}",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "2026-02-17",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Discussion Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisor_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"لجان مشاريع التخرج {{academic_year}} - {{semester}}\",\n  \"academicYear\": \"{{academic_year}}\",\n  \"semester\": \"{{semester}}\",\n  \"discussionDate\": \"{{discussion_date}}\",\n  \"department\": \"{{department}}\",\n  \"location\": \"{{discussion_location}}\",\n  \"chairName\": \"{{chair_name}}\",\n  \"items\": [\n    {\n      \"projectId\": \"{{project_id}}\",\n      \"committeeNames\": [\n        \"{{chair_name}}\",\n        \"د. إياد هلالي\",\n        \"د. سامر خزاعي\"\n      ],\n      \"startsAt\": \"{{discussion_starts_at}}\",\n      \"endsAt\": \"{{discussion_ends_at}}\",\n      \"room\": \"{{discussion_room}}\",\n      \"slotOrder\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/discussion-schedules",
+              "host": ["{{base_url}}"],
+              "path": ["discussion-schedules"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('discussion_schedule_id', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Discussion Schedule",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/discussion-schedules/{{discussion_schedule_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["discussion-schedules", "{{discussion_schedule_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Discussion Schedule",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisor_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": \"قاعة المناقشات الرئيسية\",\n  \"items\": [\n    {\n      \"projectId\": \"{{project_id}}\",\n      \"committeeNames\": [\n        \"{{chair_name}}\",\n        \"د. إياد هلالي\",\n        \"د. سامر خزاعي\"\n      ],\n      \"startsAt\": \"{{discussion_starts_at}}\",\n      \"endsAt\": \"{{discussion_ends_at}}\",\n      \"room\": \"{{discussion_room}}\",\n      \"slotOrder\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/discussion-schedules/{{discussion_schedule_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["discussion-schedules", "{{discussion_schedule_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download Discussion Schedule PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/discussion-schedules/{{discussion_schedule_id}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": [
+                "discussion-schedules",
+                "{{discussion_schedule_id}}",
+                "pdf"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Discussion Schedule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisor_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/discussion-schedules/{{discussion_schedule_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["discussion-schedules", "{{discussion_schedule_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/me",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "me"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (Array.isArray(res) && res[0] && res[0].id) {",
+                  "  pm.collectionVariables.set('notification_id', res[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Mark Notification As Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}", "read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications As Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read-all"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "student_token",
+      "value": ""
+    },
+    {
+      "key": "supervisor_token",
+      "value": ""
+    },
+    {
+      "key": "head_token",
+      "value": ""
+    },
+    {
+      "key": "project_id",
+      "value": ""
+    },
+    {
+      "key": "file_id",
+      "value": ""
+    },
+    {
+      "key": "meeting_id",
+      "value": ""
+    },
+    {
+      "key": "notification_id",
+      "value": ""
+    },
+    {
+      "key": "discussion_schedule_id",
+      "value": ""
+    },
+    {
+      "key": "student_id",
+      "value": ""
+    },
+    {
+      "key": "supervisor_id",
+      "value": ""
+    },
+    {
+      "key": "head_id",
+      "value": ""
+    },
+    {
+      "key": "student_email",
+      "value": "lina.youssef@example.com"
+    },
+    {
+      "key": "supervisor_email",
+      "value": "sara.khalid@example.com"
+    },
+    {
+      "key": "head_email",
+      "value": "head@example.com"
+    },
+    {
+      "key": "seed_password",
+      "value": "user@123456"
+    },
+    {
+      "key": "head_password",
+      "value": "user@123456"
+    },
+    {
+      "key": "new_student_email",
+      "value": "student.postman@example.com"
+    },
+    {
+      "key": "new_student_password",
+      "value": "Student@123"
+    },
+    {
+      "key": "user_role",
+      "value": "STUDENT"
+    },
+    {
+      "key": "page",
+      "value": "1"
+    },
+    {
+      "key": "limit",
+      "value": "20"
+    },
+    {
+      "key": "list_project_status",
+      "value": "APPROVED"
+    },
+    {
+      "key": "project_status",
+      "value": "UNDER_REVIEW"
+    },
+    {
+      "key": "search",
+      "value": ""
+    },
+    {
+      "key": "academic_year",
+      "value": "2025-2026"
+    },
+    {
+      "key": "semester",
+      "value": "فصل أول"
+    },
+    {
+      "key": "discussion_date",
+      "value": "2026-02-17T00:00:00.000Z"
+    },
+    {
+      "key": "discussion_starts_at",
+      "value": "2026-02-17T09:00:00.000Z"
+    },
+    {
+      "key": "discussion_ends_at",
+      "value": "2026-02-17T09:40:00.000Z"
+    },
+    {
+      "key": "discussion_location",
+      "value": "قاعة المناقشات"
+    },
+    {
+      "key": "discussion_room",
+      "value": "قاعة 1"
+    },
+    {
+      "key": "department",
+      "value": "قسم الاتصالات والمعلوماتية"
+    },
+    {
+      "key": "chair_name",
+      "value": "د. هنادي جاديا"
+    }
+  ]
+}

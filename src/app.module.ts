@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommentsModule } from './comments/comments.module';
+import { DiscussionSchedulesModule } from './discussion-schedules/discussion-schedules.module';
 import { FilesModule } from './files/files.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -24,6 +25,7 @@ import { ReportsModule } from './reports/reports.module';
     CommentsModule,
     MeetingsModule,
     NotificationsModule,
+    DiscussionSchedulesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

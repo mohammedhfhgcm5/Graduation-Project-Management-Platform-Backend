@@ -57,6 +57,7 @@ model User {
   comments           Comment[]
   progressReports    ProgressReport[]
   scheduledMeetings  Meeting[]      @relation("MeetingScheduler")
+  createdDiscussionSchedules DiscussionSchedule[] @relation("DiscussionScheduleCreator")
   notifications      Notification[]
 
   @@map("users")
@@ -81,6 +82,7 @@ model Project {
   progressReports ProgressReport[]
   comments        Comment[]
   meetings        Meeting[]
+  discussionScheduleItems DiscussionScheduleItem[]
 
   @@map("projects")
 }
@@ -151,4 +153,48 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@map("notifications")
+}
+
+model DiscussionSchedule {
+  id             String                   @id @default(uuid())
+  title          String
+  academicYear   String
+  semester       String?
+  discussionDate DateTime
+  department     String?
+  location       String?
+  chairName      String?
+  createdById    String
+  createdBy      User                     @relation("DiscussionScheduleCreator", fields: [createdById], references: [id])
+  items          DiscussionScheduleItem[]
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([discussionDate])
+  @@index([createdById])
+  @@map("discussion_schedules")
+}
+
+model DiscussionScheduleItem {
+  id              String             @id @default(uuid())
+  scheduleId      String
+  schedule        DiscussionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  projectId       String?
+  project         Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  slotOrder       Int
+  projectTitle    String
+  studentNames    String[]
+  supervisorNames String[]
+  committeeNames  String[]
+  startsAt        DateTime
+  endsAt          DateTime
+  room            String?
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([scheduleId, slotOrder])
+  @@index([scheduleId])
+  @@index([projectId])
+  @@map("discussion_schedule_items")
 }
