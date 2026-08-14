@@ -78,17 +78,25 @@ export class ProjectsService {
       ];
     }
 
-    const projects = await this.prisma.project.findMany({
-      where,
-      include: projectMembersInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip,
-      take: limit,
-    });
+    const [projects, total] = await Promise.all([
+      this.prisma.project.findMany({
+        where,
+        include: projectMembersInclude,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.project.count({ where }),
+    ]);
 
-    return formatProjectsResponse(projects);
+    return {
+      data: formatProjectsResponse(projects),
+      total,
+      page,
+      limit,
+    };
   }
 
   async createProject(dto: CreateProjectDto, user: AuthUser) {
@@ -305,6 +313,8 @@ export class ProjectsService {
       case 'DRAFT':
       case 'SUBMITTED':
         return PrismaProjectStatus.PENDING_APPROVAL;
+      case 'IN_PROGRESS':
+        return PrismaProjectStatus.IN_PROGRESS;
       case 'UNDER_REVIEW':
         return PrismaProjectStatus.UNDER_REVIEW;
       case 'APPROVED':

@@ -5,6 +5,7 @@ import type { ProjectStatus, ProjectsQuery } from './projects-query.types';
 export const PROJECT_STATUSES: ReadonlyArray<ProjectStatus> = [
   'DRAFT',
   'SUBMITTED',
+  'IN_PROGRESS',
   'UNDER_REVIEW',
   'APPROVED',
   'REJECTED',

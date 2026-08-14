@@ -8,6 +8,7 @@
 export type ProjectStatus =
   | 'DRAFT'
   | 'SUBMITTED'
+  | 'IN_PROGRESS'
   | 'UNDER_REVIEW'
   | 'APPROVED'
   | 'REJECTED'
