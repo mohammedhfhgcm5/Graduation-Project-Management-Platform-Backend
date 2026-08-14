@@ -1,5 +1,13 @@
-﻿import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+﻿import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import type { ProjectStatus, ProjectsQuery } from './projects-query.types';
 
 export const PROJECT_STATUSES: ReadonlyArray<ProjectStatus> = [
@@ -33,4 +41,9 @@ export class ListProjectsDto implements ProjectsQuery {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  archived?: boolean;
 }

@@ -53,7 +53,11 @@ export class ProjectsService {
       };
     }
 
-    if (query.status) {
+    if (query.archived === true) {
+      where.status = PrismaProjectStatus.COMPLETED;
+    } else if (query.archived === false) {
+      where.status = { not: PrismaProjectStatus.COMPLETED };
+    } else if (query.status) {
       where.status = this.mapQueryStatusToDbStatus(query.status);
     }
 

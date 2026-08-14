@@ -3,6 +3,7 @@
   limit?: number;
   status?: ProjectStatus;
   search?: string;
+  archived?: boolean;
 }
 
 export type ProjectStatus =
