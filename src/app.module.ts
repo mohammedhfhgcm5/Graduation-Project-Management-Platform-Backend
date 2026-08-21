@@ -6,11 +6,13 @@ import { AppService } from './app.service';
 import { CommentsModule } from './comments/comments.module';
 import { DiscussionSchedulesModule } from './discussion-schedules/discussion-schedules.module';
 import { FilesModule } from './files/files.module';
+import { IdeasModule } from './ideas/ideas.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { ReportsModule } from './reports/reports.module';
+import { VisitsModule } from './visits/visits.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { ReportsModule } from './reports/reports.module';
     MeetingsModule,
     NotificationsModule,
     DiscussionSchedulesModule,
+    IdeasModule,
+    VisitsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

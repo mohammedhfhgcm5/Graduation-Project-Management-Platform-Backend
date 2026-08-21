@@ -3,16 +3,22 @@ import {
   ArrayMinSize,
   IsArray,
   IsDateString,
+  IsEnum,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { ScheduleType } from '../../generated/prisma/enums';
 import { CreateDiscussionScheduleItemDto } from './create-discussion-schedule.dto';
 
 export class UpdateDiscussionScheduleDto {
   @IsOptional()
   @IsString()
   title?: string;
+
+  @IsOptional()
+  @IsEnum(ScheduleType)
+  type?: ScheduleType;
 
   @IsOptional()
   @IsString()

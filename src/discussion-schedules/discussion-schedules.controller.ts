@@ -17,6 +17,7 @@ import { Role } from '../generated/prisma/enums';
 import { DiscussionSchedulesService } from './discussion-schedules.service';
 import { CreateDiscussionScheduleDto } from './dto/create-discussion-schedule.dto';
 import { ListDiscussionSchedulesDto } from './dto/list-discussion-schedules.dto';
+import { SuggestDiscussionScheduleDto } from './dto/suggest-discussion-schedule.dto';
 import { UpdateDiscussionScheduleDto } from './dto/update-discussion-schedule.dto';
 
 @Controller('discussion-schedules')
@@ -28,6 +29,20 @@ export class DiscussionSchedulesController {
   @Get()
   listSchedules(@Query() query: ListDiscussionSchedulesDto) {
     return this.discussionSchedulesService.listSchedules(query);
+  }
+
+  @Get('mine')
+  listMySchedules(@CurrentUser() user: AuthUser) {
+    return this.discussionSchedulesService.listMySchedules(user);
+  }
+
+  @Roles(Role.SUPERVISOR, Role.HEAD)
+  @Post('suggest')
+  suggestSchedule(
+    @Body() dto: SuggestDiscussionScheduleDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.discussionSchedulesService.suggestSchedule(dto, user);
   }
 
   @Roles(Role.SUPERVISOR, Role.HEAD)

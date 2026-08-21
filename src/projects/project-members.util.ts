@@ -19,6 +19,13 @@ export const projectMembersInclude = {
   supervisors: {
     select: userSummarySelect,
   },
+  committeeMembers: {
+    include: {
+      user: {
+        select: userSummarySelect,
+      },
+    },
+  },
 } satisfies Prisma.ProjectInclude;
 
 export const projectMemberIdsSelect = {
@@ -102,15 +109,26 @@ export function assertProjectEditor(
   throw new ForbiddenException(message);
 }
 
+type CommitteeMemberRow = {
+  user: unknown;
+};
+
+type ProjectWithOptionalCommittee<TStudent, TSupervisor> =
+  ProjectParticipants<TStudent, TSupervisor> & {
+    committeeMembers?: CommitteeMemberRow[];
+  };
+
 export function formatProjectResponse<
   TStudent,
   TSupervisor,
-  TProject extends ProjectParticipants<TStudent, TSupervisor>,
+  TProject extends ProjectWithOptionalCommittee<TStudent, TSupervisor>,
 >(project: TProject) {
+  const { committeeMembers, ...rest } = project;
   return {
-    ...project,
+    ...rest,
     student: project.students[0] ?? null,
     supervisor: project.supervisors[0] ?? null,
+    committee: (committeeMembers ?? []).map((member) => member.user),
   };
 }
 

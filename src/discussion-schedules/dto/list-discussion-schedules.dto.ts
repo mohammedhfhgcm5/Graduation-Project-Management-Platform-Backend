@@ -1,12 +1,14 @@
 import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
   Max,
   Min,
 } from 'class-validator';
+import { ScheduleType } from '../../generated/prisma/enums';
 
 export class ListDiscussionSchedulesDto {
   @IsOptional()
@@ -33,4 +35,8 @@ export class ListDiscussionSchedulesDto {
   @IsOptional()
   @IsDateString()
   date?: string;
+
+  @IsOptional()
+  @IsEnum(ScheduleType)
+  type?: ScheduleType;
 }

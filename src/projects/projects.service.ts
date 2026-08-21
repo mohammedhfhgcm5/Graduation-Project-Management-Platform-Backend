@@ -16,6 +16,7 @@ import { AssignSupervisorDto } from './dto/assign-supervisor.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ListProjectsDto } from './dto/list-projects.dto';
 import type { ProjectStatus as QueryProjectStatus } from './dto/projects-query.types';
+import { UpdateProjectCommitteeDto } from './dto/update-project-committee.dto';
 import { UpdateProjectStatusDto } from './dto/update-project-status.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import {
@@ -24,6 +25,7 @@ import {
   formatProjectResponse,
   formatProjectsResponse,
   getProjectStudentIds,
+  getProjectSupervisorIds,
   hasProjectSupervisor,
   projectMemberIdsSelect,
   projectMembersInclude,
@@ -295,6 +297,66 @@ export class ProjectsService {
     );
 
     return formatProjectResponse(updatedProject);
+  }
+
+  async updateCommittee(
+    projectId: string,
+    dto: UpdateProjectCommitteeDto,
+    user: AuthUser,
+  ) {
+    const project = await this.ensureProjectExists(projectId);
+
+    if (user.role === Role.SUPERVISOR && !hasProjectSupervisor(project, user.sub)) {
+      throw new ForbiddenException(
+        'Only assigned supervisors or the department head can set the committee.',
+      );
+    }
+
+    const userIds = [...new Set(dto.userIds)];
+    if (userIds.length < 1 || userIds.length > 5) {
+      throw new BadRequestException(
+        'Discussion committee must have between 1 and 5 members.',
+      );
+    }
+
+    const members = await this.prisma.user.findMany({
+      where: {
+        id: { in: userIds },
+        role: { in: [Role.SUPERVISOR, Role.HEAD] },
+      },
+      select: { id: true, name: true, role: true },
+    });
+
+    if (members.length !== userIds.length) {
+      throw new NotFoundException(
+        'One or more committee members were not found or are not eligible.',
+      );
+    }
+
+    const supervisorIds = new Set(getProjectSupervisorIds(project));
+    const hasProjectSupervisorOnCommittee = userIds.some((id) =>
+      supervisorIds.has(id),
+    );
+
+    if (!hasProjectSupervisorOnCommittee) {
+      throw new BadRequestException(
+        'Committee must include at least one project supervisor.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.projectCommitteeMember.deleteMany({ where: { projectId } });
+      await tx.projectCommitteeMember.createMany({
+        data: userIds.map((userId) => ({ projectId, userId })),
+      });
+    });
+
+    const updated = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: projectMembersInclude,
+    });
+
+    return formatProjectResponse(updated!);
   }
 
   async deleteProject(projectId: string, user: AuthUser) {

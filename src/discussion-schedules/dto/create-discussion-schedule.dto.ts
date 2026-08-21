@@ -4,6 +4,7 @@ import {
   ArrayUnique,
   IsArray,
   IsDateString,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -11,6 +12,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { ScheduleType } from '../../generated/prisma/enums';
 
 export class CreateDiscussionScheduleItemDto {
   @IsOptional()
@@ -33,11 +35,19 @@ export class CreateDiscussionScheduleItemDto {
   @IsString({ each: true })
   supervisorNames?: string[];
 
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayUnique()
   @IsString({ each: true })
-  committeeNames!: string[];
+  committeeNames?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  committeeMemberIds?: string[];
 
   @IsDateString()
   startsAt!: string;
@@ -64,6 +74,10 @@ export class CreateDiscussionScheduleDto {
   @IsOptional()
   @IsString()
   title?: string;
+
+  @IsOptional()
+  @IsEnum(ScheduleType)
+  type?: ScheduleType;
 
   @IsString()
   academicYear!: string;

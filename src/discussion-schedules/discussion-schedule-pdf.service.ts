@@ -142,8 +142,13 @@ export class DiscussionSchedulePdfService {
         features: ['liga', 'rlig', 'calt'],
       });
 
+    const typeLabel =
+      (schedule as { type?: string }).type === 'SEMINAR'
+        ? 'سيمنار'
+        : 'مناقشة نهائية';
     const dateLabel = this.formatDate(schedule.discussionDate);
     const subtitle = [
+      typeLabel,
       schedule.academicYear,
       schedule.semester,
       dateLabel,

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -15,6 +16,7 @@ import { Role } from '../generated/prisma/enums';
 import { AssignSupervisorDto } from './dto/assign-supervisor.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ListProjectsDto } from './dto/list-projects.dto';
+import { UpdateProjectCommitteeDto } from './dto/update-project-committee.dto';
 import { UpdateProjectStatusDto } from './dto/update-project-status.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
@@ -70,6 +72,16 @@ export class ProjectsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.projectsService.assignSupervisor(projectId, dto, user);
+  }
+
+  @Roles(Role.HEAD, Role.SUPERVISOR)
+  @Put(':id/committee')
+  updateCommittee(
+    @Param('id') projectId: string,
+    @Body() dto: UpdateProjectCommitteeDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.projectsService.updateCommittee(projectId, dto, user);
   }
 
   @Roles(Role.HEAD)

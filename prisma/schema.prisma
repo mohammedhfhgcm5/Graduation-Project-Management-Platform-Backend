@@ -4,8 +4,8 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -22,67 +22,93 @@ enum Role {
 }
 
 enum ProjectStatus {
-  PENDING_APPROVAL   // بانتظار موافقة رئيس القسم
-  APPROVED           // تمت الموافقة
-  IN_PROGRESS        // قيد التنفيذ
-  UNDER_REVIEW       // تحت المراجعة النهائية
-  COMPLETED          // منتهي
-  REJECTED           // مرفوض
+  PENDING_APPROVAL // بانتظار موافقة رئيس القسم
+  APPROVED // تمت الموافقة
+  IN_PROGRESS // قيد التنفيذ
+  UNDER_REVIEW // تحت المراجعة النهائية
+  COMPLETED // منتهي
+  REJECTED // مرفوض
 }
 
 enum FileType {
-  PROPOSAL           // ملف المقترح
-  PROGRESS_REPORT    // تقرير دوري
-  FINAL_REPORT       // التقرير النهائي
-  PRESENTATION       // ملف العرض
+  PROPOSAL // ملف المقترح
+  PROGRESS_REPORT // تقرير دوري
+  FINAL_REPORT // التقرير النهائي
+  PRESENTATION // ملف العرض
   OTHER
+}
+
+enum IdeaStatus {
+  AVAILABLE
+  TAKEN
+  ARCHIVED
+}
+
+enum VisitRating {
+  POOR
+  FAIR
+  GOOD
+  EXCELLENT
+}
+
+enum ScheduleType {
+  FINAL_DISCUSSION
+  SEMINAR
 }
 
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 
 model User {
-  id          String   @id @default(uuid())
-  name        String
-  email       String   @unique
-  password    String
-  role        Role
-  department  String?
-  avatarUrl   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       Role
+  department String?
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relations
-  studentProjects    Project[]      @relation("ProjectStudents")
-  supervisedProjects Project[]      @relation("ProjectSupervisors")
-  comments           Comment[]
-  progressReports    ProgressReport[]
-  scheduledMeetings  Meeting[]      @relation("MeetingScheduler")
-  createdDiscussionSchedules DiscussionSchedule[] @relation("DiscussionScheduleCreator")
-  notifications      Notification[]
+  studentProjects              Project[]                    @relation("ProjectStudents")
+  supervisedProjects           Project[]                    @relation("ProjectSupervisors")
+  comments                     Comment[]
+  progressReports              ProgressReport[]
+  scheduledMeetings            Meeting[]                    @relation("MeetingScheduler")
+  createdDiscussionSchedules   DiscussionSchedule[]         @relation("DiscussionScheduleCreator")
+  notifications                Notification[]
+  proposedIdeas                ProjectIdea[]                @relation("IdeaProposer")
+  recordedVisits               Visit[]                      @relation("VisitSupervisor")
+  studentVisits                Visit[]                      @relation("VisitStudent")
+  committeeMemberships         ProjectCommitteeMember[]
+  scheduleItemMemberships      DiscussionScheduleItemMember[]
 
   @@map("users")
 }
 
 model Project {
-  id           String        @id @default(uuid())
-  title        String
-  description  String
-  status       ProjectStatus @default(PENDING_APPROVAL)
-  progress     Int           @default(0) // 0–100
-  techStack    String[]      // ["React", "NestJS", ...]
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  status      ProjectStatus @default(PENDING_APPROVAL)
+  progress    Int           @default(0) // 0–100
+  techStack   String[] // ["React", "NestJS", ...]
 
-  students     User[]        @relation("ProjectStudents")
-  supervisors  User[]        @relation("ProjectSupervisors")
+  students    User[] @relation("ProjectStudents")
+  supervisors User[] @relation("ProjectSupervisors")
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  files           ProjectFile[]
-  progressReports ProgressReport[]
-  comments        Comment[]
-  meetings        Meeting[]
+  files                   ProjectFile[]
+  progressReports         ProgressReport[]
+  comments                Comment[]
+  meetings                Meeting[]
   discussionScheduleItems DiscussionScheduleItem[]
+  committeeMembers        ProjectCommitteeMember[]
+  visits                  Visit[]
+  sourceIdea              ProjectIdea?
 
   @@map("projects")
 }
@@ -94,7 +120,7 @@ model ProjectFile {
   type                   FileType
   url                    String
   filename               String
-  size                   Int?     // bytes
+  size                   Int? // bytes
   provider               String   @default("cloudinary")
   cloudinaryPublicId     String?
   cloudinaryResourceType String?
@@ -105,40 +131,40 @@ model ProjectFile {
 }
 
 model ProgressReport {
-  id          String   @id @default(uuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  content     String
-  weekNumber  Int
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  content    String
+  weekNumber Int
+  createdAt  DateTime @default(now())
 
   @@map("progress_reports")
 }
 
 model Comment {
-  id          String   @id @default(uuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  content     String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
 
   @@map("comments")
 }
 
 model Meeting {
-  id           String   @id @default(uuid())
-  projectId    String
-  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   scheduledById String
-  scheduledBy  User     @relation("MeetingScheduler", fields: [scheduledById], references: [id])
-  scheduledAt  DateTime
-  location     String?  // "Room 204" or Google Meet link
-  notes        String?
-  createdAt    DateTime @default(now())
+  scheduledBy   User     @relation("MeetingScheduler", fields: [scheduledById], references: [id])
+  scheduledAt   DateTime
+  location      String? // "Room 204" or Google Meet link
+  notes         String?
+  createdAt     DateTime @default(now())
 
   @@map("meetings")
 }
@@ -149,15 +175,68 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   message   String
   isRead    Boolean  @default(false)
-  link      String?  // e.g. "/projects/uuid"
+  link      String? // e.g. "/projects/uuid"
   createdAt DateTime @default(now())
 
   @@map("notifications")
 }
 
+model ProjectIdea {
+  id                 String     @id @default(uuid())
+  title              String
+  description        String
+  techStack          String[]
+  status             IdeaStatus @default(AVAILABLE)
+  department         String?
+  proposedById       String
+  proposedBy         User       @relation("IdeaProposer", fields: [proposedById], references: [id])
+  claimedByProjectId String?    @unique
+  claimedByProject   Project?   @relation(fields: [claimedByProjectId], references: [id], onDelete: SetNull)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@index([status])
+  @@index([proposedById])
+  @@map("project_ideas")
+}
+
+model Visit {
+  id           String      @id @default(uuid())
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User        @relation("VisitStudent", fields: [studentId], references: [id])
+  supervisorId String
+  supervisor   User        @relation("VisitSupervisor", fields: [supervisorId], references: [id])
+  visitedAt    DateTime
+  summary      String
+  evaluation   String
+  rating       VisitRating
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([projectId])
+  @@index([studentId])
+  @@index([supervisorId])
+  @@map("visits")
+}
+
+model ProjectCommitteeMember {
+  projectId String
+  userId    String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([projectId, userId])
+  @@index([userId])
+  @@map("project_committee_members")
+}
+
 model DiscussionSchedule {
   id             String                   @id @default(uuid())
   title          String
+  type           ScheduleType             @default(FINAL_DISCUSSION)
   academicYear   String
   semester       String?
   discussionDate DateTime
@@ -172,15 +251,16 @@ model DiscussionSchedule {
 
   @@index([discussionDate])
   @@index([createdById])
+  @@index([type])
   @@map("discussion_schedules")
 }
 
 model DiscussionScheduleItem {
-  id              String             @id @default(uuid())
+  id              String                         @id @default(uuid())
   scheduleId      String
-  schedule        DiscussionSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule        DiscussionSchedule             @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   projectId       String?
-  project         Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project         Project?                       @relation(fields: [projectId], references: [id], onDelete: SetNull)
   slotOrder       Int
   projectTitle    String
   studentNames    String[]
@@ -190,11 +270,23 @@ model DiscussionScheduleItem {
   endsAt          DateTime
   room            String?
   notes           String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  committeeMembers DiscussionScheduleItemMember[]
 
   @@unique([scheduleId, slotOrder])
   @@index([scheduleId])
   @@index([projectId])
   @@map("discussion_schedule_items")
+}
+
+model DiscussionScheduleItemMember {
+  itemId String
+  userId String
+  item   DiscussionScheduleItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, userId])
+  @@index([userId])
+  @@map("discussion_schedule_item_members")
 }
