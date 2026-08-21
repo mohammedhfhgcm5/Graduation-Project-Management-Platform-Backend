@@ -16,6 +16,11 @@ export class MeetingsController {
     return this.meetingsService.listMyMeetings(user);
   }
 
+  @Get('mine')
+  listMyMeetingsAlias(@CurrentUser() user: AuthUser) {
+    return this.meetingsService.listMyMeetings(user);
+  }
+
   @Roles(Role.SUPERVISOR)
   @Post(':projectId')
   scheduleMeeting(
