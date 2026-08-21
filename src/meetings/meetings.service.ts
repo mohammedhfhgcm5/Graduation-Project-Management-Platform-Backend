@@ -63,6 +63,30 @@ export class MeetingsService {
     return meeting;
   }
 
+  async listMyMeetings(user: AuthUser) {
+    const where =
+      user.role === Role.STUDENT
+        ? { project: { students: { some: { id: user.sub } } } }
+        : user.role === Role.SUPERVISOR
+          ? { project: { supervisors: { some: { id: user.sub } } } }
+          : {};
+
+    return this.prisma.meeting.findMany({
+      where,
+      include: {
+        scheduledBy: { select: userSummarySelect },
+        project: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
   async listMeetings(projectId: string, user: AuthUser) {
     const project = await this.ensureProjectExists(projectId);
     assertProjectAccess(

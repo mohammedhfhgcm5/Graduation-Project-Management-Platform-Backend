@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize,
   ArrayUnique,
   IsArray,
   IsDateString,
@@ -15,11 +14,11 @@ import {
 import { ScheduleType } from '../../generated/prisma/enums';
 
 export class SuggestDiscussionScheduleDto {
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayUnique()
   @IsUUID('4', { each: true })
-  projectIds!: string[];
+  projectIds?: string[];
 
   @IsDateString()
   discussionDate!: string;

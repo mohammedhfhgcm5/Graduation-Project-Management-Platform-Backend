@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import type { AuthUser } from '../common/interfaces/auth-user.interface';
 import { Prisma } from '../generated/prisma/client';
-import { Role, ScheduleType } from '../generated/prisma/enums';
+import { ProjectStatus, Role, ScheduleType } from '../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
   hasProjectSupervisor,
@@ -268,12 +268,14 @@ export class DiscussionSchedulesService {
       );
     }
 
+    const projectIds = await this.resolveSuggestProjectIds(dto.projectIds, user);
+
     const projects = await this.prisma.project.findMany({
-      where: { id: { in: dto.projectIds } },
+      where: { id: { in: projectIds } },
       include: projectMembersInclude,
     });
 
-    if (projects.length !== dto.projectIds.length) {
+    if (projects.length !== projectIds.length) {
       throw new NotFoundException('One or more projects were not found.');
     }
 
@@ -686,6 +688,46 @@ export class DiscussionSchedulesService {
     }
 
     return names;
+  }
+
+  private async resolveSuggestProjectIds(
+    requestedIds: string[] | undefined,
+    user: AuthUser,
+  ) {
+    if (requestedIds?.length) {
+      return requestedIds;
+    }
+
+    const where: Prisma.ProjectWhereInput = {
+      committeeMembers: { some: {} },
+      status: {
+        in: [
+          ProjectStatus.APPROVED,
+          ProjectStatus.IN_PROGRESS,
+          ProjectStatus.UNDER_REVIEW,
+          ProjectStatus.COMPLETED,
+        ],
+      },
+    };
+
+    if (user.role === Role.SUPERVISOR) {
+      where.supervisors = { some: { id: user.sub } };
+    }
+
+    const projects = await this.prisma.project.findMany({
+      where,
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const projectIds = projects.map((project) => project.id);
+
+    if (!projectIds.length) {
+      throw new BadRequestException(
+        'No projects with a discussion committee were found.',
+      );
+    }
+
+    return projectIds;
   }
 
   private createDefaultTitle(dto: {

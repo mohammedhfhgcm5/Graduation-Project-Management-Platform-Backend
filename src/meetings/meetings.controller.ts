@@ -11,6 +11,11 @@ import { MeetingsService } from './meetings.service';
 export class MeetingsController {
   constructor(private readonly meetingsService: MeetingsService) {}
 
+  @Get()
+  listMyMeetings(@CurrentUser() user: AuthUser) {
+    return this.meetingsService.listMyMeetings(user);
+  }
+
   @Roles(Role.SUPERVISOR)
   @Post(':projectId')
   scheduleMeeting(
